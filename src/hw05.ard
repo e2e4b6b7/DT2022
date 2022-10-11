@@ -49,4 +49,4 @@
 
 -- 9. Определите функцию B right -> B left.
 
-\func Itr' {B : I -> \Type} (b : B right) : B left => coe2 B right b left
+\func Itr' {B : I -> \Type} (b : B right) : B left => transport B (sym left=right) b
