@@ -4,12 +4,6 @@
 \import lect05
 \open NatSemiring(+-comm)
 
--- 1. Докажите, что vnil является нейтральным элементом для v++.
-
-\func vnil-rightId {A : \Type} {n : Nat} (xs : Vec A n) : xs v++ vnil = xs \elim n, xs
-  | 0, vnil => idp
-  | suc n, vcons a xs => pmap (vcons a) $ vnil-rightId xs
-
 -- 2. Докажите, что (\lam x => not (not x)) = (\lam x => x).
 
 \func notNotId : (\lam x => not (not x)) = (\lam x => x) =>
