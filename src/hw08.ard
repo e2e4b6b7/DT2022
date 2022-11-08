@@ -1,6 +1,12 @@
-\import Data.Bool
 \import Data.List \hiding (headDef)
-\import Utils (<->)
+\import Function.Meta
+\import Meta
+\import Paths.Meta
+\import Utils (*>, <->, Bool, T, true, false)
+\import hw01 (fac)
+\import hw03 (*-comm, ldistr, rdistr)
+\import hw04
+\import lect06 (*-assoc)
 \import lect08
 \import Order.LinearOrder
 \open LinearOrder
@@ -10,28 +16,98 @@
 --    * Все элементы filter p xs удовлетворяют предикату p
 --    * Любой подсписок xs с тем же свойством является подсписком filter p xs
 
+\data Sublist {A : \Type} (xs ys : List A) \elim xs, ys
+  | nil, nil => sub-nil
+  | xs, :: y ys => sub-drop (Sublist xs ys)
+  | :: x xs, :: y ys => sub-cons (x = y) (Sublist xs ys)
+
+\data AllMatch {A : \Type} (xs : List A) (p : A -> Bool) \elim xs
+  | nil => nil-match
+  | :: x xs => cons-match (p x = true) (AllMatch xs p)
+
+\func filter {A : \Type} (xs : List A) (p : A -> Bool) : List A \elim xs
+  | nil => nil
+  | :: a xs => \case p a \with {
+    | true => a :: filter xs p
+    | false => filter xs p
+  }
+
+\func filter-spec-1 {A : \Type} (xs : List A) (p : A -> Bool) : Sublist (filter xs p) xs \elim xs
+  | nil => sub-nil
+  | :: a xs => mcases \with {
+    | true => sub-cons idp (filter-spec-1 xs p)
+    | false => sub-drop (filter-spec-1 xs p)
+  }
+
+\func filter-spec-2 {A : \Type} (xs : List A) (p : A -> Bool) : AllMatch (filter xs p) p \elim xs
+  | nil => nil-match
+  | :: a xs => \case p a \as pa, idp : p a = pa \with {
+    | true, pp => rewrite pp $ cons-match pp (filter-spec-2 xs p)
+    | false, pp => rewrite pp $ filter-spec-2 xs p
+  }
+
+\func filter-spec-3 {A : \Type} (xs ys : List A) (p : A -> Bool) (fs1 : Sublist ys xs) (fs2 : AllMatch ys p) : Sublist ys (filter xs p) =>
+  {?}
+--\elim xs, ys
+--  | nil, nil => sub-nil
+--  | nil, :: a ys => \case ss \with {}
+--  | :: a xs, nil => mcases \with {
+--    | true => sub-nil-all _
+--    | false => sub-nil-all _
+--  }
+--  | :: a xs, :: a1 ys => \case \elim ss2 \with {
+--    | cons-match p1 ss2 => \case \elim ss \with {
+--      | sub-drop ss => filter-spec-3 xs (a1 :: ys) p _ _
+--      | sub-cons p2 ss => {?}
+--    }
+--  }
+
 -- 2. Докажите, что Perm l1 l2 тогда и только тогда, когда Insertion.sort l1 = Insertion.sort l2.
 
 -- 3. Докажите, что спецификация "результат является перестановкой входа и отсортирован" является полной для функции sort.
 
-\func completeness {A : Dec} (sort : List A -> List A) (l : List A) (p : Perm l (sort l)) (s : Sorted (sort l)) : sort l = Insertion.sort l
-  => {?}
+\func completeness {A : Dec} (sort : List A -> List A) (l : List A) (p : Perm l (sort l)) (s : Sorted (sort l)) : sort l = Insertion.sort l =>
+  {?}
 
 -- 4. Определите факториал через хвостовую рекурсию.
 --    Докажите, что он равен обычному определению факториала.
+
+\func fac' (n : Nat) : Nat => helper n 1
+  \where {
+    \func helper (n acc : Nat) : Nat \elim n
+      | 0 => acc
+      | suc n \as n' => helper n (n' Nat.* acc)
+  }
+
+\func nat-*-assoc (n m k : Nat) : n Nat.* (m Nat.* k) = (n Nat.* m) Nat.* k \elim k
+  | 0 => idp
+  | suc k => rewrite (ldistr n (m Nat.* k) m) $ pmap (__ Nat.+ n Nat.* m) $ nat-*-assoc _ _ _
+
+\func *-lone (n : Nat) : n = 1 Nat.* n \elim n
+  | 0 => idp
+  | suc n => pmap suc $ *-lone n
+
+\func fac-eq (n : Nat) : fac' n = fac n => rewrite (*-lone (fac n)) $ helper-lemm n 1
+  \where {
+    \func helper-lemm (n acc : Nat) : fac'.helper n acc = acc Nat.* fac n \elim n
+      | 0 => idp
+      | suc n =>
+        rewrite (helper-lemm n (suc n Nat.* acc)) $
+        rewrite nat-*-assoc $
+        pmap (\lam x => x Nat.* fac n) $
+        later $ rewrite (*-comm acc (suc n)) idp
+  }
 
 -- 5. Определите функцию, которая проверяет правильность скобочной последовательности.
 --    Докажите ее корректность.
 
 \data Paren | Left | Right
 
-\func isBalanced (xs : List Paren) : Bool
-  => {?}
+\func isBalanced (xs : List Paren) : Bool => {?}
 
 \data Balanced (xs : List Paren) \with
   | nil => nil-balanced
   | :: Left xs => cons-balanced {ys : List Paren} (Balanced ys) (xs = ys ++ Right :: nil)
   | xs => append-balanced {ys zs : List Paren} (Balanced ys) (Balanced zs) (xs = ys ++ zs)
 
-\func isBalanced-correct (xs : List Paren) : (isBalanced xs = true) <-> Balanced xs
-  => {?}
+\func isBalanced-correct (xs : List Paren) : (isBalanced xs = true) <-> Balanced xs => {?}
