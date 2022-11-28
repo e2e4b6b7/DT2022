@@ -1,13 +1,29 @@
+\import Function.Meta
+\import Meta
+\import Equiv
+\import lect05 (funExt, funExt')
+\import lect10 (Sigma-isProp, setLem)
 \import lect11
-\import Utils \hiding (transport,Or,inl,inr)
+\import Utils \hiding (transport, Or, inl, inr)
 
 -- 1. Докажите, что если A : \Prop, то Trunc A эквивалентен A.
 
-\func trunc-prop {A : \Prop} : Trunc A <-> A => {?}
+\func trunc-prop {A : \Prop} : Trunc A <-> A => (\lam ta => Trunc-elim (\lam a => a) ta, \lam a => trunc a)
 
 -- 2. Докажите следующий закон де Моргана.
 
-\func deMorgan (A B C : \Prop) : (\Sigma A (B `Or` C)) <-> ((\Sigma A B) `Or` (\Sigma A C)) => {?}
+\func deMorgan (A B C : \Prop) : (\Sigma A (B `Or` C)) <-> ((\Sigma A B) `Or` (\Sigma A C)) =>
+  (
+    \lam (a, obc) => \case obc \with {
+      | inl b => inl (a, b)
+      | inr c => inr (a, c)
+    }
+  ,
+    \lam a => \case a \with {
+      | inl (a, b) => (a, inl b)
+      | inr (a, c) => (a, inr c)
+    }
+  )
 
 -- 3. Определите элиминатор для Or через Or-rec, не используя паттерн матчинг на Or.
 
