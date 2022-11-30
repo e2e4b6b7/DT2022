@@ -1,15 +1,34 @@
+\import Function.Meta
+\import Meta
+\import Paths.Meta
 \import Utils
-\import lect12
+\import Logic (/=, TruncP, inP, truncP)
+\import hw04 (pmap2)
+\import lect06 (ppp)
+\import lect12 \hiding (sym)
 
 -- 1. Определите функцию negPred : Int -> Int такую, что negPred x = x, если x > 0, и negPred x = x - 1, если x <= 0.
 
-\func negPred (x : Int) : Int => {?}
+\func negPred (x : Int) : Int
+  | pos n => pos n
+  | neg (suc n) => neg (n Nat.+ 2)
 
 -- 2. Определите функции сложения и умножения для Int.
 
-\func \infixl 6 + (x y : Int) : Int => {?}
+\func \infixl 6 + (x y : Int) : Int
+  | pos 0, y => y
+  | pos n \as x, pos 0 => x
+  | neg n \as x, pos 0 => x
+  | pos n, pos n1 => pos $ n Nat.+ n1
+  | pos (suc n), neg (suc n1) => pos n + neg n1
+  | neg (suc n), pos (suc n1) => neg n + pos n1
+  | neg (suc _ \as n), neg (suc _ \as n1) => neg $ n Nat.+ n1
 
-\func \infixl 7 * (x y : Int) : Int => {?}
+\func \infixl 7 * (x y : Int) : Int
+  | pos n, pos n1 => pos $ n Nat.* n1
+  | pos n, neg n1 => neg $ n Nat.* n1
+  | neg (suc _ \as n), pos n1 => neg $ n Nat.* n1
+  | neg (suc _ \as n), neg n1 => pos $ n Nat.* n1
 
 -- 3. Определите тип данных BinNat для бинарных натуральных чисел.
 --    У него должно быть три конструктора: для 0, для чисел вида 2*n и чисел вида 2*n+1.
@@ -17,6 +36,11 @@
 --    Используйте типы данных с условиями, чтобы вычислительно отождествить различные нули.
 
 \data BinNat
+  | end
+  | zero BinNat \with {
+    | end => end
+  }
+  | one BinNat
 
 -- 4. Докажите, что функция pred сюръективна.
 
@@ -24,11 +48,16 @@
   | 0 => 0
   | suc n => n
 
-\func pred-is-sur : isSur pred => {?}
+\func pred-is-sur : isSur pred => \lam n => cases n \with {
+  | 0 => inP (0, idp)
+  | suc n1 => inP (n1 Nat.+ 2, idp)
+}
 
 -- 5. Докажите, что функция suc не сюръективна.
 
-\func suc-is-not-sur (p : isSur suc) : Empty => {?}
+\func suc-is-not-sur (p : isSur suc) : Empty => \case p 0 \with {
+  | inP (a, ())
+}
 
 -- 6. Пусть f : A -> B и g : B -> C ─ некоторые функции.
 --    Докажите, что если f и g сюръективны, то g `o` f также сюръективна.
@@ -36,9 +65,17 @@
 
 \func \fixr 9 o {A B C : \Type} (g : B -> C) (f : A -> B) => \lam a => g (f a)
 
-\func o-sur {A B C : \Type} (f : A -> B) (g : B -> C) (p : isSur f) (q : isSur g) : isSur (g `o` f) => {?}
+\func o-sur {A B C : \Type} (f : A -> B) (g : B -> C) (p : isSur f) (q : isSur g) : isSur (g `o` f) =>
+  \lam c => \case q c \with {
+    | inP (b, q') => \case p b \with {
+      | inP (a, p') => inP (a, unfold o $ rewrite p' q')
+    }
+  }
 
-\func o-sur' {A B C : \Type} (f : A -> B) (g : B -> C) (p : isSur (g `o` f)) : isSur g => {?}
+\func o-sur' {A B C : \Type} (f : A -> B) (g : B -> C) (p : isSur (g `o` f)) : isSur g =>
+  \lam c => \case p c \with {
+    | inP (a, p') => inP (f a, p')
+  }
 
 -- 7. Определите множество конечных подмножеств множества A, то есть списков элементов A с точностью до перестановок и повторений элементов.
 
@@ -64,10 +101,29 @@
 -- Optional
 -- 9. Постройте функции Nat -> BinNat и BinNat -> Nat и докажите, что они взаимно обратны.
 
-\func NatToBinNat (n : Nat) : BinNat => {?}
+\func NatToBinNat (n : Nat) : BinNat => NatToBinNatWithAcc n n
+  \where {
+    \func NatToBinNatWithAcc (n : Nat) (acc : Nat) : BinNat \elim acc
+      | 0 => end
+      | suc acc => \case Nat.divMod n 2 \with {
+        | (d, 0) => zero $ NatToBinNatWithAcc d acc
+        | (d, 1) => one $ NatToBinNatWithAcc d acc
+      }
+  }
 
-\func BinNatToNat (b : BinNat) : Nat => {?}
+\func BinNatToNat (b : BinNat) : Nat
+  | end => 0
+  | zero b => 2 Nat.* BinNatToNat b
+  | one b => 2 Nat.* BinNatToNat b Nat.+ 1
 
-\func nbn (n : Nat) : BinNatToNat (NatToBinNat n) = n => {?}
+\func nbn (n : Nat) : BinNatToNat (NatToBinNat n) = n
+  | 0 => idp
+  | suc n => {?}
 
-\func bnb (b : BinNat) : NatToBinNat (BinNatToNat b) = b => {?}
+\func tmp (b : Nat) : NatToBinNat (2 Nat.* b) = zero (NatToBinNat b) => {?}
+\func tmp-suc (b : Nat) : NatToBinNat (suc (2 Nat.* b)) = one (NatToBinNat b) => {?}
+
+\func bnb (b : BinNat) : NatToBinNat (BinNatToNat b) = b
+  | end => idp
+  | zero bn => rewriteI (bnb bn) $ rewrite (tmp _) $ pmap zero $ pmap NatToBinNat $ pmap BinNatToNat $ bnb bn
+  | one bn => rewriteI (bnb bn) $ rewrite (tmp-suc _) $ pmap one $ pmap NatToBinNat $ pmap BinNatToNat $ bnb bn
